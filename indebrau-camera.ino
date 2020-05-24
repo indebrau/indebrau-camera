@@ -1,4 +1,4 @@
-#include "OV2640.h"
+#include <OV2640.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WiFiClient.h>
@@ -17,7 +17,7 @@ void handle_jpg(void)
   cam.run();
   if (!client.connected())
   {
-    Serial.println("fail ... \n");
+    Serial.println("fail...");
     return;
   }
   String response = "HTTP/1.1 200 OK\r\n";
@@ -25,6 +25,7 @@ void handle_jpg(void)
   response += "Content-type: image/jpeg\r\n\r\n";
   server.sendContent(response);
   client.write((char *)cam.getfb(), cam.getSize());
+  Serial.println("send image");
 }
 
 void handleNotFound()
@@ -78,10 +79,10 @@ void setup()
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
-    if (millis() > lastToggled + 10000)
+    if (millis() > lastToggled + 5000)
     {
-        Serial.println("cannot connect, rebooting");
-        ESP.restart();
+      Serial.println("cannot connect, rebooting");
+      ESP.restart();
     }
     Serial.print(F("."));
   }
@@ -89,7 +90,6 @@ void setup()
   Serial.println("");
   Serial.println(WiFi.localIP());
 
- // server.on("/stream", HTTP_GET, handle_jpg_stream);
   server.on("/", HTTP_GET, handle_jpg);
   server.onNotFound(handleNotFound);
   server.begin();
@@ -97,34 +97,9 @@ void setup()
 
 void loop()
 {
-  if(WiFi.status() != WL_CONNECTED)
+  if (WiFi.status() != WL_CONNECTED)
   {
     ESP.restart(); // just restart, because..why not
   }
   server.handleClient();
 }
-
-/*
-void handle_jpg_stream(void)
-{
-  WiFiClient client = server.client();
-  String response = "HTTP/1.1 200 OK\r\n";
-  response += "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n\r\n";
-  server.sendContent(response);
-
-  while (1)
-  {
-    cam.run();
-    if (!client.connected())
-      break;
-    response = "--frame\r\n";
-    response += "Content-Type: image/jpeg\r\n\r\n";
-    server.sendContent(response);
-
-    client.write((char *)cam.getfb(), cam.getSize());
-    server.sendContent("\r\n");
-    if (!client.connected())
-      break;
-  }
-}
-*/
