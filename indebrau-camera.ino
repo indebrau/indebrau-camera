@@ -6,15 +6,16 @@
 OV2640 cam;
 WebServer server(80);
 
-const char *ssid = "FRITZBox";
-const char *password = "89020965368268527211";
+const char *ssid = "Brauerei";
+const char *password = "gzBbNSQYqZYbh2Va";
 unsigned long lastToggled;
 
 void handle_jpg(void)
 {
+  digitalWrite(2, HIGH); // turn on flash
   WiFiClient client = server.client();
-
   cam.run();
+  digitalWrite(2, LOW); // turn off flash
   if (!client.connected())
   {
     Serial.println("fail...");
@@ -72,6 +73,10 @@ void setup()
   camera_config.frame_size = CAMERA_FS_SVGA;
 
   cam.init(camera_config);
+
+  // configure flashlight led
+  pinMode(2, OUTPUT);
+  digitalWrite(2, LOW);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
