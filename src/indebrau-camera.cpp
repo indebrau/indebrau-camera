@@ -1,50 +1,48 @@
 #include <WebServer.h>
 #include <WiFiClient.h>
-#include <WiFiManager.h>      // for configuring in access point mode
-#include <DNSServer.h>        // needed for WiFiManager
+#include <WiFiManager.h> // for configuring in access point mode
 
 #include "esp_camera.h"
-#include "esp_timer.h"
-#include "soc/soc.h"           // Disable brownout problems
-#include "soc/rtc_cntl_reg.h"  // Disable brownout problems
+#include "soc/soc.h"          // Disable brownout problems
+#include "soc/rtc_cntl_reg.h" // Disable brownout problems
 
 // two boards: TTGO T-Journal or ESP32-CAM AI-Thinker are supported
-#define ttgoBoard false
+#define ttgoBoard true
 
 #if ttgoBoard
-#define PWDN_GPIO_NUM     32
-#define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM     27
-#define SIOD_GPIO_NUM     25
-#define SIOC_GPIO_NUM     23
-#define Y9_GPIO_NUM       19
-#define Y8_GPIO_NUM       36
-#define Y7_GPIO_NUM       18
-#define Y6_GPIO_NUM       39
-#define Y5_GPIO_NUM       5
-#define Y4_GPIO_NUM       34
-#define Y3_GPIO_NUM       35
-#define Y2_GPIO_NUM       17
-#define VSYNC_GPIO_NUM    22
-#define HREF_GPIO_NUM     26
-#define PCLK_GPIO_NUM     21
+#define PWDN_GPIO_NUM 32
+#define RESET_GPIO_NUM -1
+#define XCLK_GPIO_NUM 27
+#define SIOD_GPIO_NUM 25
+#define SIOC_GPIO_NUM 23
+#define Y9_GPIO_NUM 19
+#define Y8_GPIO_NUM 36
+#define Y7_GPIO_NUM 18
+#define Y6_GPIO_NUM 39
+#define Y5_GPIO_NUM 5
+#define Y4_GPIO_NUM 34
+#define Y3_GPIO_NUM 35
+#define Y2_GPIO_NUM 17
+#define VSYNC_GPIO_NUM 22
+#define HREF_GPIO_NUM 26
+#define PCLK_GPIO_NUM 21
 #else
-#define PWDN_GPIO_NUM     32
-#define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM      0
-#define SIOD_GPIO_NUM     26
-#define SIOC_GPIO_NUM     27
-#define Y9_GPIO_NUM       35
-#define Y8_GPIO_NUM       34
-#define Y7_GPIO_NUM       39
-#define Y6_GPIO_NUM       36
-#define Y5_GPIO_NUM       21
-#define Y4_GPIO_NUM       19
-#define Y3_GPIO_NUM       18
-#define Y2_GPIO_NUM        5
-#define VSYNC_GPIO_NUM    25
-#define HREF_GPIO_NUM     23
-#define PCLK_GPIO_NUM     22
+#define PWDN_GPIO_NUM 32
+#define RESET_GPIO_NUM -1
+#define XCLK_GPIO_NUM 0
+#define SIOD_GPIO_NUM 26
+#define SIOC_GPIO_NUM 27
+#define Y9_GPIO_NUM 35
+#define Y8_GPIO_NUM 34
+#define Y7_GPIO_NUM 39
+#define Y6_GPIO_NUM 36
+#define Y5_GPIO_NUM 21
+#define Y4_GPIO_NUM 19
+#define Y3_GPIO_NUM 18
+#define Y2_GPIO_NUM 5
+#define VSYNC_GPIO_NUM 25
+#define HREF_GPIO_NUM 23
+#define PCLK_GPIO_NUM 22
 #endif
 
 WebServer server(80);
@@ -67,7 +65,8 @@ void handleNotFound()
   server.send(200, "text/plain", message);
 }
 
-void handle_config(void){
+void handle_config(void)
+{
   String message = "Portal started!\nPlease connect to Access Point\n";
   message += deviceName;
   message += "\n";
@@ -79,9 +78,10 @@ void handle_jpg(void)
 {
   WiFiClient client = server.client();
 
-  camera_fb_t * fb = NULL; // pointer
+  camera_fb_t *fb = NULL; // pointer
   fb = esp_camera_fb_get();
-  if (!fb) {
+  if (!fb)
+  {
     Serial.println("Camera capture failed");
     return;
   }
@@ -99,17 +99,17 @@ void handle_jpg(void)
   client.write(fb->buf, fb->len);
 }
 
-
 void setup()
 {
   Serial.begin(115200);
   // https://forum.arduino.cc/index.php?topic=613549.0
   uint32_t chipId = 0;
-  for(int i=0; i<17; i=i+8) {
+  for (int i = 0; i < 17; i = i + 8)
+  {
     chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
   }
   snprintf(deviceName, 30, "IndebrauCam-%08X", chipId); // set device name
-  
+
   // WiFi Manager
   wifiManager.setTimeout(120);
 
@@ -143,23 +143,24 @@ void setup()
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
 
-  #if ttgoBoard
-    config.frame_size = FRAMESIZE_SVGA;
-    config.jpeg_quality = 12;
-    config.fb_count = 1;
-  #else
-    config.frame_size = FRAMESIZE_UXGA;
-    config.jpeg_quality = 12;
-    config.fb_count = 1;
-  #endif
+#if ttgoBoard
+  config.frame_size = FRAMESIZE_SVGA;
+  config.jpeg_quality = 12;
+  config.fb_count = 1;
+#else
+  config.frame_size = FRAMESIZE_UXGA;
+  config.jpeg_quality = 12;
+  config.fb_count = 1;
+#endif
 
   // Camera init
   esp_err_t err = esp_camera_init(&config);
-  if (err != ESP_OK) {
+  if (err != ESP_OK)
+  {
     Serial.printf("Camera init failed with error 0x%x", err);
     ESP.restart();
   }
-  
+
   Serial.println(F("WiFi connected"));
   Serial.println("");
   Serial.println(WiFi.localIP());
@@ -173,17 +174,17 @@ void setup()
 
 void loop()
 {
-      if (WiFi.status() != WL_CONNECTED)
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    /* If the wifimanager runs into a timeout, restart device
+      Prevents being stuck in Access Point mode when Wifi signal was
+      temporarily lost.
+    */
+    if (!wifiManager.autoConnect(deviceName, AP_PASSPHRASE))
     {
-      /* If the wifimanager runs into a timeout, restart device
-       * Prevents being stuck in Access Point mode when Wifi signal was
-       * temporarily lost.
-       */
-      if (!wifiManager.autoConnect(deviceName, AP_PASSPHRASE))
-      {
-        Serial.println("Connection not possible, timeout, restart!");
-        ESP.restart();
-      }
+      Serial.println("Connection not possible, timeout, restart!");
+      ESP.restart();
     }
+  }
   server.handleClient();
 }
