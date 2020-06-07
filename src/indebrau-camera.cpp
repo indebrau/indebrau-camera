@@ -2,9 +2,9 @@
 #include <WiFiClient.h>
 #include <WiFiManager.h> // for configuring in access point mode
 
-#include "esp_camera.h"
-#include "soc/soc.h"          // Disable brownout problems
-#include "soc/rtc_cntl_reg.h" // Disable brownout problems
+#include <esp_camera.h>
+#include <soc/soc.h>          // Disable brownout problems
+#include <soc/rtc_cntl_reg.h> // Disable brownout problems
 
 // two boards: TTGO T-Journal or ESP32-CAM AI-Thinker are supported
 #define ttgoBoard true
@@ -115,7 +115,7 @@ void setup()
 
   if (!wifiManager.autoConnect(deviceName, AP_PASSPHRASE))
   {
-    Serial.println("Connection not possible, timeout, restart!");
+    Serial.println("Connection not possible, restart!");
     ESP.restart();
   }
 
@@ -158,6 +158,7 @@ void setup()
   if (err != ESP_OK)
   {
     Serial.printf("Camera init failed with error 0x%x", err);
+    delay(1000);
     ESP.restart();
   }
 
