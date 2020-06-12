@@ -2,12 +2,16 @@
 #include <WiFiClient.h>
 #include <WiFiManager.h> // for configuring in access point mode
 
+// camera
 #include <esp_camera.h>
-#include <soc/soc.h>          // Disable brownout problems
-#include <soc/rtc_cntl_reg.h> // Disable brownout problems
+#include <soc/soc.h>
+#include <soc/rtc_cntl_reg.h>
+
+// define, if flash should be used
+bool useFlash = true;
 
 // two boards: TTGO T-Journal or ESP32-CAM AI-Thinker are supported
-#define ttgoBoard true
+#define ttgoBoard false
 
 #if ttgoBoard
 #define PWDN_GPIO_NUM 32
@@ -51,6 +55,7 @@ unsigned long lastToggled;
 WiFiManager wifiManager;
 const char AP_PASSPHRASE[16] = "indebrau";
 char deviceName[30];
+int flashGIPO = -1;
 
 void handleNotFound()
 {
@@ -76,6 +81,10 @@ void handle_config(void)
 
 void handle_jpg(void)
 {
+  if (useFlash)
+  {
+    digitalWrite(flashGIPO, HIGH); // turn on flash
+  }
   WiFiClient client = server.client();
 
   camera_fb_t *fb = NULL; // pointer
@@ -84,6 +93,10 @@ void handle_jpg(void)
   {
     Serial.println("Camera capture failed");
     return;
+  }
+  if (useFlash)
+  {
+    digitalWrite(flashGIPO, LOW); // turn off flash
   }
   esp_camera_fb_return(fb);
 
@@ -110,13 +123,24 @@ void setup()
   }
   snprintf(deviceName, 30, "IndebrauCam-%08X", chipId); // set device name
 
-  // WiFi Manager
-  wifiManager.setTimeout(120);
-
+  wifiManager.setTimeout(90);
   if (!wifiManager.autoConnect(deviceName, AP_PASSPHRASE))
   {
     Serial.println("Connection not possible, restart!");
     ESP.restart();
+  }
+
+  if (useFlash) // configure flash
+  {
+#if ttgoBoard
+    flashGIPO = 2;
+#else
+    flashGIPO = 4;
+#endif
+    Serial.print("Using flash on PIN ");
+    Serial.println(flashGIPO);
+    pinMode(flashGIPO, OUTPUT);
+    digitalWrite(flashGIPO, LOW);
   }
 
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
